@@ -74,6 +74,26 @@ class DirectedGraph(Graph):
   def add_edge(self, v: int, w: int) -> None:
     super().add_edge(v, w)
     self._adj[v].append(w)
+    
+def ford_fulkerson(graph: DirectedGraph, source: int, sink: int) -> int:
+  max_flow = 0
+  
+  path = graph.dfs(source, sink)
+  while path:
+    bottleneck = float('inf')
+    for i in range(len(path) - 1):
+      v,w = path[i], path[i + 1]
+      for edge in graph.adj(v):
+        if edge == w:
+          bottleneck = min(bottleneck, edge.weight)
+          break
+      for edge in graph.adj(w):
+        if edge == v:
+          edge.weight += bottleneck
+          break
+    max_flow += bottleneck
+    path = graph.dfs(source, sink)
+
 if __name__ == '__main__':
   V = 5
   graph = DirectedGraph(V)
