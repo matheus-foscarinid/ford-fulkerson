@@ -74,3 +74,11 @@ class DirectedGraph(Graph):
   def add_edge(self, v: int, w: int) -> None:
     super().add_edge(v, w)
     self._adj[v].append(w)
+if __name__ == '__main__':
+  V = 5
+  graph = DirectedGraph(V)
+  graph.add_edge(0, 1)
+  graph.add_edge(0, 2)
+  graph.add_edge(1, 3)
+  graph.add_edge(3, 4)
+  print(graph.dfs(0, 4))
