@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import List
+from typing import List, Optional
 
 class Graph(ABC):
   def __init__(self, V: int) -> None:
@@ -8,6 +8,7 @@ class Graph(ABC):
     self._V = V
     self._E = 0
     self._adj: List[List[int]] = []
+    self._vertex_names: List[Optional[str]] = []
     self.clear()
 
   def __len__(self) -> int:
@@ -25,8 +26,9 @@ class Graph(ABC):
   def clear(self) -> None:
     self._E = 0
     self._adj: List[List[int]] = []
-    for _ in range(self._V):
-      self._adj.append([])
+    for index in range(self._V):
+      self._adj.append([0] * self._V)
+      self._vertex_names.append(str(index))
 
   def add_edge(self, v: int, w: int) -> None:
     self._validate_vertex(v)
@@ -36,69 +38,73 @@ class Graph(ABC):
   def adj(self, v: int) -> List[int]:
     self._validate_vertex(v)
     return self._adj[v]
+  
+  def set_vertex_name(self, v: int, name: str) -> None:
+    self._validate_vertex(v)
+    self._vertex_names[v] = name
+    
+  def get_vertex_name(self, v: int) -> Optional[str]:
+    self._validate_vertex(v)
+    return self._vertex_names[v]
 
   def _validate_vertex(self, v: int) -> None:
     if not (0 <= v < self._V):
       raise ValueError(f'Vertex {v} is not between 0 and {self._V - 1}')
 
-  def dfs(self, s: int, t: int):
-        visited = [False] * self._V
-        path = []
+  def dfs(self, source: int, target: int):
+    visited = [False] * self._V
+    path = []
 
-        def dfs(v, t):
-          # first mark the vertex as visited and add it to the path
-          visited[v] = True
-          path.append(v)
-          
-          # if we reached the target vertex, return the path
-          if v == t:
-            return path
+    def dfs(vertex, target):
+      # first mark the vertex as visited and add it to the path
+      visited[vertex] = True
+      path.append(vertex)
+      
+      # if we reached the target vertex, return the path
+      if vertex == target:
+        return path
 
-          # else, visit all adjacent vertices
-          for w in self.adj(v):
-            # if the vertex is not visited, recursively visit it 
-            if not visited[w]:
-              result_path = dfs(w, t)
-              # if the path is found, return it
-              if result_path:
-                return result_path
+      # else, visit all adjacent vertices
+      for index, val in enumerate(self._adj[vertex]):
+        # if the vertex is not visited, and has a weight then visit it
+        if not visited[index] and val > 0:
+          result_path = dfs(index, target)
+          # if the path is found, return itt5
+          if result_path:
+            return result_path
 
-          # if the path is not found, remove the vertex from the path
-          path.pop()
-          # and return None so that the parent vertex knows that the path is not found
-          return None
+      # if the path is not found, remove the vertex from the path
+      path.pop()
+      # and return None so that the parent vertex knows that the path is not found
+      return None
 
-        return dfs(s, t)
+    return dfs(source, target)
 
 class DirectedGraph(Graph):
-  def add_edge(self, v: int, w: int) -> None:
+  def add_edge(self, v: int, w: int, weight: int) -> None:
     super().add_edge(v, w)
-    self._adj[v].append(w)
+    self._adj[v][w] = weight
     
-def ford_fulkerson(graph: DirectedGraph, source: int, sink: int) -> int:
-  max_flow = 0
-  
-  path = graph.dfs(source, sink)
-  while path:
-    bottleneck = float('inf')
-    for i in range(len(path) - 1):
-      v,w = path[i], path[i + 1]
-      for edge in graph.adj(v):
-        if edge == w:
-          bottleneck = min(bottleneck, edge.weight)
-          break
-      for edge in graph.adj(w):
-        if edge == v:
-          edge.weight += bottleneck
-          break
-    max_flow += bottleneck
-    path = graph.dfs(source, sink)
+  def ford_fulkerson(self, source: int, sink: int) -> int:
+    max_flow = 0
+    
+    path = self.dfs(source, sink)
+    while path:
+      bottleneck = float('inf')
 
-if __name__ == '__main__':
-  V = 5
-  graph = DirectedGraph(V)
-  graph.add_edge(0, 1)
-  graph.add_edge(0, 2)
-  graph.add_edge(1, 3)
-  graph.add_edge(3, 4)
-  print(graph.dfs(0, 4))
+      for i in range(len(path) - 1):
+        v,w = path[i], path[i + 1]
+        bottleneck = min(bottleneck, self._adj[v][w])
+      
+      for i in range(len(path) - 1):
+        v,w = path[i], path[i + 1]
+        self._adj[v][w] -= bottleneck
+        self._adj[w][v] += bottleneck
+        
+      max_flow += bottleneck
+      path_names = [self.get_vertex_name(v) for v in path]
+      print("Path:", " -> ".join(path_names), ", Flow adicional:", bottleneck)
+      
+      path = self.dfs(source, sink)
+      
+    return max_flow
